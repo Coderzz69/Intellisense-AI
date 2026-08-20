@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic RL Four-Feed Interface</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <p class="eyebrow">Traffic Control Interface</p>
+        <h1>Upload four road feeds and watch the RL traffic board decide.</h1>
+        <p class="lede">
+          Each feed is processed with YOLO detection and tracking, then the combined RL model chooses which lanes should be green or red.
+        </p>
+      </div>
+      <form id="upload-form" class="upload-card">
+        <label><span>North feed</span><input type="file" name="north_feed" accept="video/*" required></label>
+        <label><span>East feed</span><input type="file" name="east_feed" accept="video/*" required></label>
+        <label><span>South feed</span><input type="file" name="south_feed" accept="video/*" required></label>
+        <label><span>West feed</span><input type="file" name="west_feed" accept="video/*" required></label>
+        <button type="submit">Run Model</button>
+        <div id="job-status" class="job-status">Waiting for four video feeds.</div>
+      </form>
+    </section>
+
+    <section class="workspace">
+      <section class="board-card">
+        <div class="board-head">
+          <div>
+            <p class="eyebrow">Signal Board</p>
+            <h2 id="global-signal">No decision yet</h2>
+            <p id="global-meta">Upload feeds to generate the RL decision timeline.</p>
+          </div>
+          <div class="controls">
+            <button type="button" id="play-all">Play All</button>
+            <button type="button" id="pause-all">Pause All</button>
+          </div>
+        </div>
+        <div class="junction">
+          <div class="road road--north" data-road="North"><span>N</span><i></i></div>
+          <div class="road road--east" data-road="East"><span>E</span><i></i></div>
+          <div class="road road--south" data-road="South"><span>S</span><i></i></div>
+          <div class="road road--west" data-road="West"><span>W</span><i></i></div>
+          <div class="junction-center">
+            <strong id="junction-label">Waiting</strong>
+            <small>Combined RL output</small>
+          </div>
+        </div>
+        <div class="timeline">
+          <div class="timeline-meta">
+            <strong id="second-label">Second 0</strong>
+            <span id="q-values">q = []</span>
+          </div>
+          <input id="timeline-slider" type="range" min="0" max="0" value="0" step="1">
+        </div>
+      </section>
+
+      <section class="metrics-card">
+        <p class="eyebrow">Lane Metrics</p>
+        <h2>Current second detail</h2>
+        <div id="lane-metrics" class="lane-metrics"></div>
+      </section>
+    </section>
+
+    <section class="feeds">
+      <div class="feeds-head">
+        <p class="eyebrow">Annotated Output Videos</p>
+        <h2>N / E / S / W camera outputs</h2>
+      </div>
+      <div id="feed-grid" class="feed-grid"></div>
+    </section>
+  </main>
+
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</body>
+</html>

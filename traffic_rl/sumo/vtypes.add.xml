@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<additional>
+    <!-- ============================================================
+         INDIAN ROAD VEHICLE TYPES
+    ============================================================ -->
+    <vType id="car" vClass="passenger" length="4.5" width="1.8" maxSpeed="20.0"
+           accel="2.2" decel="4.5" sigma="0.8" minGap="2.0" tau="0.9"
+           guiShape="passenger" color="cyan"
+           lcStrategic="1.0" lcCooperative="0.3" lcSpeedGain="3.0"
+           lcAssertive="2.0" lcImpatience="0.5" lcKeepRight="0.0"
+           lcSublane="1.5" latAlignment="arbitrary"
+           jmDriveAfterRedTime="0.8" jmDriveAfterYellowTime="1.0"
+           jmIgnoreKeepClearTime="0.4" jmTimegapMinor="1.2"/>
+
+    <vType id="truck" vClass="truck" length="9.0" width="2.4" maxSpeed="14.0"
+           accel="0.8" decel="3.0" sigma="0.6" minGap="2.5" tau="1.5"
+           guiShape="truck" color="orange"
+           lcStrategic="0.6" lcCooperative="0.4" lcSpeedGain="1.5"
+           lcAssertive="1.2" lcImpatience="0.2" lcKeepRight="0.1"
+           lcSublane="0.8" latAlignment="arbitrary"
+           jmDriveAfterRedTime="0.3" jmDriveAfterYellowTime="0.5"
+           jmIgnoreKeepClearTime="0.1" jmTimegapMinor="2.0"/>
+
+    <vType id="bus" vClass="bus" length="12.0" width="2.5" maxSpeed="12.0"
+           accel="1.0" decel="3.0" sigma="0.5" minGap="2.5" tau="1.3"
+           guiShape="bus" color="blue"
+           lcStrategic="0.5" lcCooperative="0.4" lcSpeedGain="1.0"
+           lcAssertive="1.0" lcImpatience="0.1" lcKeepRight="0.0"
+           jmDriveAfterRedTime="0.3" jmDriveAfterYellowTime="0.5"
+           jmIgnoreKeepClearTime="0.1" jmTimegapMinor="2.0"/>
+
+    <vType id="ambulance" vClass="emergency" length="6.0" width="2.0" maxSpeed="28.0"
+           accel="5.0" decel="8.0" sigma="0.1" minGap="1.5" tau="0.4"
+           guiShape="emergency" color="red"
+           lcStrategic="1.0" lcCooperative="0.0" lcSpeedGain="5.0"
+           lcAssertive="3.0" lcImpatience="1.0" lcKeepRight="0.0"
+           jmDriveAfterRedTime="5.0" jmDriveAfterYellowTime="5.0"
+           jmIgnoreKeepClearTime="1.0" jmTimegapMinor="0.3"/>
+
+    <!-- Indian mix without bikes: cars dominate -->
+    <vTypeDistribution id="indian_mix" vTypes="car truck bus" probs="0.70 0.15 0.15"/>
+</additional>

@@ -1,0 +1,225 @@
+.traffic-map-panel {
+  padding: 1.35rem;
+}
+
+.traffic-map-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.traffic-map-toolbar h2 {
+  margin: 0.25rem 0 0;
+}
+
+.traffic-map-toolbar-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.map-toggle-button {
+  border: 1px solid rgba(157, 178, 202, 0.18);
+  border-radius: 999px;
+  padding: 0.8rem 1.1rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #dce8f5;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.map-toggle-button:hover {
+  transform: translateY(-1px);
+}
+
+.map-toggle-button-active {
+  border-color: rgba(255, 209, 102, 0.46);
+  background: linear-gradient(135deg, rgba(255, 209, 102, 0.22), rgba(251, 146, 60, 0.16));
+  color: #fff6df;
+}
+
+.traffic-map-stage {
+  position: relative;
+  min-height: min(78vh, 52rem);
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(3, 7, 18, 0.86);
+}
+
+.traffic-map-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.traffic-map-empty {
+  display: grid;
+  place-items: center;
+  min-height: 22rem;
+  padding: 1.5rem;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #c7d7ea;
+  text-align: center;
+}
+
+.traffic-map-empty code {
+  color: #fde68a;
+}
+
+.traffic-map-floating-card {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 0.35rem;
+  min-width: 17rem;
+  padding: 1rem 1.1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(7, 14, 25, 0.82);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.32);
+  backdrop-filter: blur(14px);
+}
+
+.traffic-map-summary {
+  top: 1rem;
+  left: 1rem;
+}
+
+.traffic-map-status {
+  right: 1rem;
+  bottom: 1rem;
+}
+
+.traffic-map-floating-card span {
+  color: #9db2ca;
+}
+
+.traffic-map-floating-card strong {
+  color: #f8fafc;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.traffic-map-legend {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.traffic-map-legend-label {
+  font-size: 0.82rem;
+}
+
+.traffic-map-legend-bar {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #2563eb 0%, #22c55e 36%, #fde047 62%, #fb923c 82%, #ef4444 100%);
+}
+
+.traffic-map-popup .mapboxgl-popup-content {
+  border-radius: 18px;
+  padding: 0;
+  background: rgba(8, 17, 31, 0.96);
+  color: #f8fafc;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.36);
+}
+
+.traffic-map-popup .mapboxgl-popup-close-button {
+  color: #f8fafc;
+}
+
+.traffic-map-popup-card {
+  display: grid;
+  gap: 0.4rem;
+  min-width: 15rem;
+  padding: 1rem 1.05rem;
+}
+
+.traffic-map-popup-card strong {
+  font-size: 1rem;
+}
+
+.traffic-map-popup-card span,
+.traffic-map-popup-card p {
+  color: #bfd0e4;
+}
+
+.traffic-map-popup-card p {
+  margin: 0.25rem 0 0;
+  line-height: 1.5;
+}
+
+.traffic-map-stage .mapboxgl-ctrl-top-right {
+  top: 1rem;
+  right: 1rem;
+}
+
+.traffic-map-stage .mapboxgl-ctrl-group {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(7, 14, 25, 0.82);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.22);
+}
+
+.traffic-map-stage .mapboxgl-ctrl button {
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .traffic-map-toolbar {
+    flex-direction: column;
+  }
+
+  .traffic-map-stage {
+    min-height: 34rem;
+  }
+
+  .traffic-map-summary,
+  .traffic-map-status {
+    position: static;
+    min-width: 0;
+    margin: 1rem;
+  }
+
+  .traffic-map-stage {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+
+  .traffic-map-canvas {
+    inset: 0 0 9.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .traffic-map-panel {
+    padding: 1.1rem;
+  }
+
+  .traffic-map-toolbar-actions {
+    width: 100%;
+  }
+
+  .map-toggle-button {
+    flex: 1 1 0;
+    text-align: center;
+  }
+
+  .traffic-map-stage {
+    min-height: 31rem;
+  }
+
+  .traffic-map-summary,
+  .traffic-map-status {
+    margin: 0.75rem;
+  }
+}

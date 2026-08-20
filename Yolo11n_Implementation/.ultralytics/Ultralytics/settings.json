@@ -1,0 +1,21 @@
+{
+  "settings_version": "0.0.6",
+  "datasets_dir": "C:\\Users\\seera\\Desktop\\Exploration\\vnr\\datasets",
+  "weights_dir": "C:\\Users\\seera\\Desktop\\Exploration\\vnr\\intelligent_Traffic_management\\weights",
+  "runs_dir": "C:\\Users\\seera\\Desktop\\Exploration\\vnr\\intelligent_Traffic_management\\runs",
+  "uuid": "31dce288d047a33056eb59357f2eca08cbb18b23be0942d41f9f855fe9b72f3d",
+  "sync": true,
+  "api_key": "",
+  "openai_api_key": "",
+  "clearml": true,
+  "comet": true,
+  "dvc": true,
+  "hub": true,
+  "mlflow": true,
+  "neptune": true,
+  "raytune": true,
+  "tensorboard": false,
+  "wandb": false,
+  "vscode_msg": true,
+  "openvino_msg": true
+}

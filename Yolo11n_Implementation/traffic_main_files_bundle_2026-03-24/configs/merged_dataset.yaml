@@ -1,0 +1,13 @@
+path: /home/anuj/Desktop/image-processing/traffic/prepared_data/merged_indian_traffic
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: ambulance
+  1: auto-rikshaw
+  2: bike
+  3: bus
+  4: car
+  5: police vehicle
+  6: truck

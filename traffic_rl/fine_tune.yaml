@@ -1,0 +1,53 @@
+# ============================================================
+#  Fine-tuning Configuration
+# ============================================================
+
+simulation:
+  sumo_cfg: "sumo/intersection.sumocfg"
+  sumo_binary: "sumo"
+  render: false
+  max_steps: 3600
+  yellow_duration: 5
+  green_duration: 10
+  delta_time: 5
+
+environment:
+  state_dim: 16
+  action_dim: 2
+  emergency_penalty: 1000.0 # Extreme priority: Ambulances always take precedence over congestion
+  normalize_state: true
+  max_queue: 50
+  max_wait: 200
+  reward_scale: 800.0
+
+agent:
+  learning_rate: 0.0001 # Reduced for fine-tuning
+  gamma: 0.99
+  batch_size: 128
+  epsilon_start: 0.1 # Start with low exploration
+  epsilon_end: 0.01
+  epsilon_decay_episodes: 150
+  target_update_freq: 5
+  grad_clip_norm: 1.0
+  loss: "huber"
+
+replay_buffer:
+  capacity: 50000
+  min_size: 500
+
+network:
+  hidden_layers: [128, 64]
+  activation: "relu"
+
+training:
+  total_episodes: 200 # Run for another 200 eps
+  save_freq: 50
+  log_freq: 1
+  device: "cuda"
+
+paths:
+  checkpoint_dir: "checkpoints/fine_tune"
+  log_dir: "logs/fine_tune"
+  plot_dir: "plots/fine_tune"
+
+seed: 42

@@ -1,0 +1,10 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "python.analysis.extraPaths": [
+    "${workspaceFolder}\\traffic_main_files_bundle_2026-03-24"
+  ],
+  "python.envFile": "${workspaceFolder}\\.env",
+  "terminal.integrated.env.windows": {
+    "YOLO_CONFIG_DIR": "${workspaceFolder}\\.ultralytics"
+  }
+}

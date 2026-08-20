@@ -1,0 +1,12 @@
+path: /home/anuj/Desktop/image-processing/traffic/prepared_data/three_source_no_police
+train: train/images
+val: valid/images
+test: test/images
+
+names:
+  0: ambulance
+  1: auto-rikshaw
+  2: bike
+  3: bus
+  4: car
+  5: truck

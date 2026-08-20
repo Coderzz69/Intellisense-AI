@@ -1,0 +1,61 @@
+# ============================================================
+#  Traffic Signal Control DQN — Configuration
+# ============================================================
+
+# --- Simulation ---
+simulation:
+  sumo_cfg: "sumo/intersection.sumocfg" # Path to SUMO config
+  sumo_binary: "sumo" # "sumo" (headless) or "sumo-gui"
+  render: false # true = open sumo-gui each episode
+  max_steps: 3600 # Sim seconds per episode (1 hour)
+  yellow_duration: 5 # Yellow phase length (seconds)
+  green_duration: 10 # Action interval (seconds)
+  delta_time: 1 # TraCI step size — bigger = faster episodes
+
+# --- State / Action ---
+environment:
+  state_dim: 5 # [phase_progress, is_yellow, norm_queue, norm_max_wait, has_emergency]
+  action_dim: 2 # 0 = hold green, 1 = switch phase
+  emergency_penalty: 5000.0 # Multiplier for emergency vehicle waiting time penalty
+  normalize_state: true # Normalize queues/waits to [0,1]
+  max_queue: 50 # Queue cap for normalization
+  max_wait: 200 # Wait time cap (seconds) for normalization
+  reward_scale: 800.0 # Divide raw reward by this → keeps it near [-1, 0]
+
+# --- DQN Agent ---
+agent:
+  learning_rate: 0.0005 # Adam LR (lowered for stability)
+  gamma: 0.99 # Higher discount — values long-term wait reduction
+  batch_size: 128 # Larger batch for more stable gradients
+  epsilon_start: 1.0
+  epsilon_end: 0.05
+  epsilon_decay_episodes: 200 # Faster decay — converge sooner
+  target_update_freq: 5 # Update target more frequently
+  grad_clip_norm: 1.0
+  loss: "huber" # huber = robust to outlier Q-values
+
+# --- Replay Buffer ---
+replay_buffer:
+  capacity: 50000
+  min_size: 500 # Start training sooner (delta_time=5 → fewer transitions)
+
+# --- Network ---
+network:
+  hidden_layers: [128, 64] # FC layer sizes
+  activation: "relu"
+
+# --- Training ---
+training:
+  total_episodes: 110 # Total training episodes
+  save_freq: 50 # Save checkpoint every N episodes
+  log_freq: 1 # Log metrics every N episodes
+  device: "cuda" # "cuda" or "cpu"
+
+# --- Paths ---
+paths:
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  plot_dir: "plots"
+
+# --- Reproducibility ---
+seed: 42
