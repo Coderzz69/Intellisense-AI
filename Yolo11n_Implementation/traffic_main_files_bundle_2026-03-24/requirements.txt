@@ -1,5 +1,3 @@
-numpy
-opencv-python
-PyYAML
-torch
-ultralytics
+# Training / dataset-prep scripts. They import the canonical AI package from
+# ../traffic, so install that project's requirements too.
+-r ../traffic/requirements.txt

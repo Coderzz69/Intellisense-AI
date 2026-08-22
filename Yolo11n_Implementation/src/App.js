@@ -15,6 +15,15 @@ const EMPTY_METRICS = {
   laneStats: {},
   currentGreenLane: null,
   signalCycleTimeSec: 0,
+  laneSignals: { N: 'unknown', E: 'unknown', S: 'unknown', W: 'unknown' },
+  rlGreenLanes: [],
+  rlActionName: null,
+  rlDecisionSource: null,
+};
+
+const DECISION_SOURCE_LABELS = {
+  rl_model: 'DQN policy',
+  emergency_override: 'Emergency override',
 };
 
 function formatSeconds(value) {
@@ -61,6 +70,74 @@ function MetricSparkline({ values, stroke, fill }) {
   );
 }
 
+function QValueBars({ qValues, action }) {
+  const values = Array.isArray(qValues) ? qValues : [];
+  if (!values.length) {
+    return <p className="ai-empty">Waiting for the first decision…</p>;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const span = max - min || 1;
+  const labels = ['NS_GREEN', 'EW_GREEN'];
+
+  return (
+    <div className="qvalue-list">
+      {values.map((value, index) => (
+        <div className={`qvalue-row ${index === action ? 'qvalue-chosen' : ''}`} key={labels[index] || index}>
+          <span className="qvalue-label">{labels[index] || `Action ${index}`}</span>
+          <div className="qvalue-track">
+            <div className="qvalue-bar" style={{ width: `${8 + ((value - min) / span) * 92}%` }} />
+          </div>
+          <span className="qvalue-number">{Number(value).toFixed(3)}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AiDecisionPanel({ decision, metrics }) {
+  const source = decision?.decisionSource || metrics.rlDecisionSource;
+  const isOverride = source === 'emergency_override';
+  const greenLanes = decision?.greenLanes || metrics.rlGreenLanes || [];
+
+  return (
+    <article className="panel ai-panel">
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">Reinforcement Learning</span>
+          <h2>Signal decision</h2>
+        </div>
+        <span className={`panel-badge ${isOverride ? 'panel-badge-alert' : ''}`}>
+          {DECISION_SOURCE_LABELS[source] || 'Awaiting model'}
+        </span>
+      </div>
+
+      <div className="ai-headline">
+        <strong>{decision?.actionName || metrics.rlActionName || 'Pending'}</strong>
+        <span>{greenLanes.length ? `${greenLanes.join(' + ')} green` : 'No phase assigned yet'}</span>
+      </div>
+
+      <QValueBars qValues={decision?.qValues} action={decision?.action} />
+
+      <div className="ai-meta-grid">
+        <div>
+          <span>Phase held</span>
+          <strong>{formatSeconds(decision?.phaseHeldForSec || 0)}</strong>
+        </div>
+        <div>
+          <span>Last switch</span>
+          <strong>{decision?.phaseChanged ? 'This decision' : 'Phase sustained'}</strong>
+        </div>
+        <div>
+          <span>Rule-based cycle</span>
+          <strong>{metrics.currentGreenLane || '—'}</strong>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function MetricCard({ label, value, accent, caption }) {
   return (
     <article className="metric-card">
@@ -73,16 +150,20 @@ function MetricCard({ label, value, accent, caption }) {
   );
 }
 
-function LaneCard({ lane, stats, totalVehicles, active }) {
+function LaneCard({ lane, stats, totalVehicles, signal }) {
   const laneVehicles = stats?.vehicles || 0;
   const laneShare = totalVehicles ? Math.round((laneVehicles / totalVehicles) * 100) : 0;
+  const laneSignal = signal || 'unknown';
 
   return (
-    <article className={`lane-card ${active ? 'lane-card-active' : ''}`}>
+    <article className={`lane-card lane-card-${laneSignal} ${laneSignal === 'green' ? 'lane-card-active' : ''}`}>
       <header className="lane-card-header">
         <span className="lane-token">{lane}</span>
-        <span className="lane-share">{laneShare}% share</span>
+        <span className={`lane-signal lane-signal-${laneSignal}`}>
+          {laneSignal === 'unknown' ? '—' : laneSignal.toUpperCase()}
+        </span>
       </header>
+      <span className="lane-share">{laneShare}% share</span>
       <strong className="lane-count">{laneVehicles}</strong>
       <div className="lane-meta">
         <span>Halting {stats?.halting || 0}</span>
@@ -492,6 +573,8 @@ function App() {
   const selectedVideo = queue[activeVideoIndex] || null;
   const displayedFrame = selectedVideo?.finalFrame || selectedVideo?.currentFrame || null;
   const metrics = displayedFrame?.metrics || EMPTY_METRICS;
+  const rlDecision = displayedFrame?.rlDecision || null;
+  const laneSignals = metrics.laneSignals || EMPTY_METRICS.laneSignals;
   const laneStats = metrics.laneStats || {};
   const totalVehicles = metrics.totalVehicles || 0;
   const history = selectedVideo?.history || [];
@@ -623,8 +706,8 @@ function App() {
                 <strong>{selectedVideo ? `Video ${selectedVideo.sequenceIndex}` : 'Pending'}</strong>
               </div>
               <div>
-                <span>Current green lane</span>
-                <strong>{metrics.currentGreenLane || 'Pending'}</strong>
+                <span>AI green lanes</span>
+                <strong>{(metrics.rlGreenLanes || []).join(' + ') || 'Pending'}</strong>
               </div>
               <div>
                 <span>Signal cycle</span>
@@ -821,7 +904,7 @@ function App() {
                   lane="N"
                   stats={laneStats.N}
                   totalVehicles={totalVehicles}
-                  active={metrics.currentGreenLane === 'N'}
+                  signal={laneSignals.N}
                 />
               </div>
               <div className="compass-slot compass-west">
@@ -829,14 +912,18 @@ function App() {
                   lane="W"
                   stats={laneStats.W}
                   totalVehicles={totalVehicles}
-                  active={metrics.currentGreenLane === 'W'}
+                  signal={laneSignals.W}
                 />
               </div>
               <div className="compass-slot compass-center">
-                <div className="signal-core">
-                  <span className="signal-kicker">Signal focus</span>
-                  <strong>{metrics.currentGreenLane || 'No active lane'}</strong>
-                  <p>{metrics.haltingVehicleCount} vehicles are currently halting.</p>
+                <div className={`signal-core ${metrics.rlDecisionSource === 'emergency_override' ? 'signal-core-alert' : ''}`}>
+                  <span className="signal-kicker">AI phase</span>
+                  <strong>{metrics.rlActionName || 'Awaiting model'}</strong>
+                  <p>
+                    {(metrics.rlGreenLanes || []).length
+                      ? `${(metrics.rlGreenLanes || []).join(' + ')} green · ${metrics.haltingVehicleCount} halting`
+                      : `${metrics.haltingVehicleCount} vehicles are currently halting.`}
+                  </p>
                 </div>
               </div>
               <div className="compass-slot compass-east">
@@ -844,7 +931,7 @@ function App() {
                   lane="E"
                   stats={laneStats.E}
                   totalVehicles={totalVehicles}
-                  active={metrics.currentGreenLane === 'E'}
+                  signal={laneSignals.E}
                 />
               </div>
               <div className="compass-slot compass-south">
@@ -852,11 +939,13 @@ function App() {
                   lane="S"
                   stats={laneStats.S}
                   totalVehicles={totalVehicles}
-                  active={metrics.currentGreenLane === 'S'}
+                  signal={laneSignals.S}
                 />
               </div>
             </div>
           </article>
+
+          <AiDecisionPanel decision={rlDecision} metrics={metrics} />
 
           <article className="panel trend-panel">
             <div className="panel-heading">

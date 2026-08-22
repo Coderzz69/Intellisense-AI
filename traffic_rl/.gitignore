@@ -113,9 +113,11 @@ celerybeat.pid
 *.sage.py
 
 # Environments
+# NOTE: do NOT add a bare `env/` here. This project has its own `env/` source
+# package (env/traffic_env.py, the SUMO gym environment). The generic venv
+# pattern silently excluded it from the repo once already.
 .env
 .venv
-env/
 venv/
 ENV/
 env.bak/
@@ -157,7 +159,11 @@ cython_debug/
 ### Project Specific ###
 
 # RL Models and Checkpoints
-checkpoints/
+# Large training artefacts stay out of git, but keep the trained policy that
+# demo.py / simulate.py load by default so a fresh clone can actually run.
+checkpoints/*
+!checkpoints/best.pt
+!checkpoints/latest.pt
 weights/
 memory/
 

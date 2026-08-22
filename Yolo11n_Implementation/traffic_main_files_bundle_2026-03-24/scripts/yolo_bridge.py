@@ -9,6 +9,8 @@ from typing import Iterable, List
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import _ai_path  # noqa: F401,E402  (puts the canonical traffic_pipeline on sys.path)
+
 from traffic_pipeline.models import TrackSnapshot
 from traffic_pipeline.bridge import build_bridge_vector
 

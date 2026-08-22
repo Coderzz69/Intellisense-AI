@@ -15,8 +15,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start:backend": ".\\.venv\\Scripts\\python.exe -m backend.server",
     "start": "react-scripts start",
+    "start:backend": "python -m backend.server",
+    "test:backend": "python -m unittest discover -s traffic/tests -t traffic",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"

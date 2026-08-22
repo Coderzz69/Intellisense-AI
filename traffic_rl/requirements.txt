@@ -8,3 +8,8 @@ flask-cors>=4.0.0
 requests>=2.32.0
 opencv-python>=4.10.0
 ultralytics>=8.3.0
+
+# SUMO's Python API. These wheels still need the SUMO simulator itself
+# installed and SUMO_HOME set: https://sumo.dlr.de/docs/Downloads.php
+traci>=1.18.0
+sumolib>=1.18.0

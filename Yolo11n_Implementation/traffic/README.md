@@ -1,9 +1,14 @@
 # Traffic RL Integration
 
-This project combines:
+This directory is the canonical AI package for the project. Both this Flask UI
+and the React dashboard's backend (`../backend/`) import it, so there is one
+implementation of the pipeline rather than a copy per front end.
 
-- the object detection and lane-tracking pipeline from `~/Desktop/image-processing/traffic`
-- the trained RL traffic-signal model from `~/Desktop/traffic_rl`
+It combines:
+
+- `traffic_pipeline/` — YOLO detection and lane tracking
+- `traffic_control/` — the trained DQN signal model, plus `AITrafficPipeline`
+  which fuses the two into one `process_frame` call
 
 The result is a single video-to-decision pipeline that:
 
@@ -24,20 +29,18 @@ The project also includes a browser interface where you can:
 - see the RL decision as four lane lights in the center board
 - inspect per-lane vehicle count, queue, wait, emergency flag, and Q-values
 
-Run it with the environment that already has `flask`, `torch`, `opencv-python`, `PyYAML`, and `ultralytics` installed:
+Install the dependencies (`pip install -r requirements.txt`), then:
 
 ```bash
-cd /home/anuj/Desktop/traffic
-/home/anuj/Desktop/traffic_rl/.venv/bin/python app.py
+cd traffic
+python app.py
 ```
 
-Then open `http://127.0.0.1:5001`.
-
-If you need a different port:
+Then open `http://127.0.0.1:5001`. It picks the next free port automatically
+unless you pin one:
 
 ```bash
-cd /home/anuj/Desktop/traffic
-PORT=5002 /home/anuj/Desktop/traffic_rl/.venv/bin/python app.py
+PORT=5002 python app.py
 ```
 
 ## Output format
@@ -64,6 +67,12 @@ Each emitted decision is a JSON object like:
     {"id": 101, "lane": "E", "is_halting": true, "wait_time": 2.3, "is_emergency": true}
   ]
 }
+```
+
+## Tests
+
+```bash
+cd traffic && python -m unittest discover -s tests -t .
 ```
 
 ## Run

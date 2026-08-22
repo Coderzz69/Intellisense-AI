@@ -2,10 +2,23 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Dict, Iterable, List, Optional, Protocol, Tuple, runtime_checkable
 
 from .config import DetectorConfig
 from .models import Detection
+
+
+@runtime_checkable
+class TrafficDetector(Protocol):
+    """What :class:`~traffic_pipeline.pipeline.TrafficPipeline` needs from a detector.
+
+    Implementations may additionally expose ``provider`` (a short backend name)
+    and ``inference_metadata`` (details of the most recent call, e.g. endpoint
+    latency); the pipeline surfaces both when present.
+    """
+
+    def detect(self, frame) -> List[Detection]:
+        ...
 
 
 def _matches_keyword(name: str, keywords: Iterable[str]) -> bool:
@@ -85,6 +98,8 @@ def crop_frame_to_detection_roi(
 
 
 class YoloTrafficDetector:
+    provider = "local"
+
     def __init__(self, config: DetectorConfig, vehicle_keywords: List[str]) -> None:
         try:
             from ultralytics import YOLO
@@ -103,6 +118,12 @@ class YoloTrafficDetector:
                 raise FileNotFoundError(f"YOLO weights not found: {expanded_path}")
         self.device = _resolve_device(config.device)
         self.model = YOLO(weights_path)
+        self.inference_metadata: Optional[Dict[str, object]] = {
+            "weightsPath": weights_path,
+            "device": self.device,
+            "imgsz": config.imgsz,
+            "confidence": config.confidence,
+        }
 
     def detection_roi(self, frame_shape: Tuple[int, int, int]) -> Tuple[int, int, int, int]:
         return detection_roi_bounds(frame_shape, self.config)

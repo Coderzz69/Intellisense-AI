@@ -1,3 +1,10 @@
+"""Locates the AI package and builds the pipeline the dashboard streams from.
+
+The dashboard runs the *same* AI stack as the standalone Flask UI: one canonical
+``traffic/`` package holding ``traffic_pipeline`` (YOLO + tracking) and
+``traffic_control`` (the trained DQN). Only the detector backend is swappable.
+"""
+
 from __future__ import annotations
 
 import os
@@ -6,7 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from backend.settings import (
-    BUNDLE_ENV_VAR,
+    AI_DIR_ENV_VAR,
     DEFAULT_VIDEO_ENV_VAR,
     INFERENCE_PROVIDER_ENV,
     PROJECT_ROOT,
@@ -14,33 +21,30 @@ from backend.settings import (
 )
 
 
-def discover_bundle_dir() -> Path:
+def discover_ai_dir() -> Path:
+    """Find the directory that holds ``traffic_pipeline`` and ``traffic_control``."""
     candidates: list[Path] = []
-    configured_bundle = os.environ.get(BUNDLE_ENV_VAR)
-    if configured_bundle:
-        candidates.append(Path(configured_bundle).expanduser())
+    configured = os.environ.get(AI_DIR_ENV_VAR)
+    if configured:
+        candidates.append(Path(configured).expanduser())
+    candidates.append(PROJECT_ROOT / "traffic")
 
-    candidates.extend(sorted(PROJECT_ROOT.glob("traffic_main_files_bundle*"), reverse=True))
-    candidates.append(PROJECT_ROOT / "traffic_model_bundle")
-    candidates.append(Path.home() / "Downloads" / "traffic_model_bundle")
-
-    seen: set[str] = set()
+    checked: list[Path] = []
     for candidate in candidates:
         resolved = candidate.resolve()
-        resolved_key = str(resolved).lower()
-        if resolved_key in seen:
-            continue
-        seen.add(resolved_key)
-
+        checked.append(resolved)
         if (
             (resolved / "traffic_pipeline" / "__init__.py").exists()
+            and (resolved / "traffic_control" / "__init__.py").exists()
             and (resolved / "configs" / "runtime.yaml").exists()
         ):
             return resolved
 
     raise FileNotFoundError(
-        "Could not locate a traffic model bundle. "
-        f"Set {BUNDLE_ENV_VAR} or add a bundle folder under the project root."
+        "Could not locate the traffic AI package (expected 'traffic_pipeline', "
+        "'traffic_control' and 'configs/runtime.yaml' side by side). Looked in: "
+        + ", ".join(str(path) for path in checked)
+        + f". Set {AI_DIR_ENV_VAR} to override."
     )
 
 
@@ -50,8 +54,9 @@ def discover_default_video_path() -> Optional[Path]:
     if configured_video:
         candidates.append(Path(configured_video).expanduser())
 
-    candidates.append(Path.home() / "Downloads" / "5927708-hd_1080_1920_30fps.mp4")
+    candidates.extend(sorted((PROJECT_ROOT / "samples").glob("*.mp4")))
     candidates.extend(sorted(PROJECT_ROOT.glob("*.mp4")))
+    candidates.extend(sorted((Path.home() / "Downloads").glob("*.mp4")))
 
     for candidate in candidates:
         if candidate.exists():
@@ -59,51 +64,63 @@ def discover_default_video_path() -> Optional[Path]:
     return None
 
 
-BUNDLE_DIR = discover_bundle_dir()
-DEFAULT_CONFIG_PATH = BUNDLE_DIR / "configs" / "runtime.yaml"
+AI_DIR = discover_ai_dir()
+DEFAULT_CONFIG_PATH = AI_DIR / "configs" / "runtime.yaml"
 DEFAULT_VIDEO_PATH = discover_default_video_path()
 DEFAULT_PROCESS_FPS = 10.0
 DEFAULT_EMIT_INTERVAL_SEC = 1.0
 DEFAULT_REALTIME = True
 
-if str(BUNDLE_DIR) not in sys.path:
-    sys.path.insert(0, str(BUNDLE_DIR))
+# Kept under the old name so existing callers/scripts keep working.
+BUNDLE_DIR = AI_DIR
 
-from traffic_pipeline import TrafficPipeline, load_config  # noqa: E402
+if str(AI_DIR) not in sys.path:
+    sys.path.insert(0, str(AI_DIR))
 
-
-def load_local_pipeline(config_path: Path) -> TrafficPipeline:
-    config = load_config(str(config_path))
-    weights_path = Path(config.detector.weights_path)
-    if not weights_path.is_absolute():
-        config_relative = (config_path.parent / weights_path).resolve()
-        bundle_relative = (BUNDLE_DIR / weights_path).resolve()
-        resolved_weights_path = config_relative if config_relative.exists() else bundle_relative
-        config.detector.weights_path = str(resolved_weights_path)
-    if str(config.detector.device).lower() != "cpu":
-        try:
-            import torch
-        except ModuleNotFoundError:
-            pass
-        else:
-            if not torch.cuda.is_available():
-                config.detector.device = "cpu"
-    return TrafficPipeline(config)
+from traffic_control import AITrafficPipeline  # noqa: E402
+from traffic_pipeline import AppConfig, TrafficDetector, load_config  # noqa: E402
 
 
 def get_inference_provider() -> str:
-    provider = os.environ.get(INFERENCE_PROVIDER_ENV, "local").strip().lower()
-    if provider == "local" and resolve_sagemaker_endpoint_name():
-        return "sagemaker"
-    return provider or "local"
+    """Which detector backend to use: ``local`` (bundled YOLO weights) or ``sagemaker``."""
+    provider = os.environ.get(INFERENCE_PROVIDER_ENV, "").strip().lower()
+    if provider:
+        if provider not in {"local", "sagemaker"}:
+            raise ValueError(
+                f"Unsupported inference provider: {provider!r}. Use 'local' or 'sagemaker'."
+            )
+        return provider
+    return "sagemaker" if resolve_sagemaker_endpoint_name() else "local"
 
 
-def load_processing_pipeline(config_path: Path):
-    provider = get_inference_provider()
-    if provider == "sagemaker":
-        from backend.cloud.sagemaker import SageMakerTrafficPipeline
+def resolve_app_config(config_path: Path) -> AppConfig:
+    """Load the pipeline config, forcing CPU when no CUDA device is present."""
+    config = load_config(str(config_path))
+    if str(config.detector.device).lower() not in {"cpu", ""}:
+        try:
+            import torch
+        except ModuleNotFoundError:
+            config.detector.device = "cpu"
+        else:
+            if not torch.cuda.is_available():
+                config.detector.device = "cpu"
+    return config
 
-        return SageMakerTrafficPipeline(config_path)
-    if provider != "local":
-        raise ValueError(f"Unsupported inference provider: {provider}")
-    return load_local_pipeline(config_path)
+
+def build_detector(config: AppConfig) -> Optional[TrafficDetector]:
+    """Return the configured detector, or ``None`` to let the pipeline build the local one."""
+    if get_inference_provider() == "sagemaker":
+        from backend.cloud.sagemaker import SageMakerDetector
+
+        return SageMakerDetector(config.vehicle_keywords)
+    return None
+
+
+def load_processing_pipeline(config_path: Path) -> AITrafficPipeline:
+    """Build the full frame -> YOLO -> tracking -> DQN pipeline."""
+    config = resolve_app_config(config_path)
+    return AITrafficPipeline(
+        config_path,
+        app_config=config,
+        detector=build_detector(config),
+    )

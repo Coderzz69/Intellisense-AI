@@ -194,9 +194,12 @@
   margin-top: 1.25rem;
 }
 
-.middle-grid,
 .bottom-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.middle-grid {
+  grid-template-columns: minmax(0, 1.15fr) minmax(300px, 0.85fr) minmax(0, 1fr);
 }
 
 .metric-grid {
@@ -807,5 +810,140 @@ td {
   .video-player,
   .video-placeholder {
     min-height: 16rem;
+  }
+}
+
+
+/* ---- RL decision panel ---- */
+
+.panel-badge-alert {
+  border-color: rgba(255, 107, 107, 0.45);
+  background: rgba(255, 107, 107, 0.14);
+  color: #ffc9c9;
+}
+
+.ai-headline {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1.1rem;
+}
+
+.ai-headline strong {
+  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
+  letter-spacing: -0.03em;
+}
+
+.ai-headline span,
+.ai-empty {
+  color: #9db2ca;
+  font-size: 0.9rem;
+}
+
+.qvalue-list {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+.qvalue-row {
+  display: grid;
+  grid-template-columns: 5.6rem minmax(0, 1fr) 4.4rem;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.6rem;
+  border-radius: 14px;
+  border: 1px solid transparent;
+}
+
+.qvalue-chosen {
+  border-color: rgba(107, 224, 160, 0.35);
+  background: rgba(107, 224, 160, 0.09);
+}
+
+.qvalue-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: #9db2ca;
+}
+
+.qvalue-track {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.07);
+  overflow: hidden;
+}
+
+.qvalue-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(142, 197, 255, 0.55), rgba(107, 224, 160, 0.9));
+}
+
+.qvalue-number {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.84rem;
+  color: #c7d7ea;
+}
+
+.ai-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.3rem;
+}
+
+.ai-meta-grid span {
+  display: block;
+  font-size: 0.78rem;
+  color: #9db2ca;
+}
+
+.ai-meta-grid strong {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.98rem;
+}
+
+/* ---- Per-lane signal state ---- */
+
+.lane-signal {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #9db2ca;
+}
+
+.lane-signal-green {
+  border-color: rgba(107, 224, 160, 0.45);
+  background: rgba(107, 224, 160, 0.16);
+  color: #8ff0bd;
+}
+
+.lane-signal-red {
+  border-color: rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.13);
+  color: #ffb3b3;
+}
+
+.lane-card-green {
+  border-color: rgba(107, 224, 160, 0.3);
+}
+
+.lane-card-active {
+  box-shadow: inset 0 0 0 1px rgba(107, 224, 160, 0.3);
+}
+
+.signal-core-alert {
+  background:
+    radial-gradient(circle at center, rgba(255, 107, 107, 0.24), transparent 55%),
+    rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 1200px) {
+  .middle-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

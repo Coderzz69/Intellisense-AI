@@ -9,6 +9,8 @@ from ultralytics import YOLO
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import _ai_path  # noqa: F401,E402  (puts the canonical traffic_pipeline on sys.path)
+
 
 DEFAULT_DATASET = str(
     Path(__file__).resolve().parents[1] / "configs" / "local_dataset.yaml"

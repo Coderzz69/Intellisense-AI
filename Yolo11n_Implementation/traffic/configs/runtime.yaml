@@ -43,11 +43,16 @@ rl:
   max_wait: 200.0
   initial_action: 0
 
+# Must cover every class the detector emits, or those detections are dropped.
+# detector_best.pt classes: ambulance, auto-rikshaw, bike, bus, car, truck
 vehicle_keywords:
   - ambulance
   - emergency vehicle
   - auto-rikshaw
   - auto-rickshaw
+  - bike
+  - bicycle
+  - motorcycle
   - bus
   - car
   - police vehicle

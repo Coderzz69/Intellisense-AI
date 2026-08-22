@@ -5,7 +5,9 @@ import sys
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BUNDLE_ENV_VAR = "TRAFFIC_MODEL_BUNDLE_DIR"
+AI_DIR_ENV_VAR = "TRAFFIC_AI_DIR"
+# Legacy alias; the AI package used to ship as a dated "bundle" folder.
+BUNDLE_ENV_VAR = AI_DIR_ENV_VAR
 DEFAULT_VIDEO_ENV_VAR = "TRAFFIC_DEFAULT_VIDEO_PATH"
 INFERENCE_PROVIDER_ENV = "TRAFFIC_INFERENCE_PROVIDER"
 PRIMARY_SAGEMAKER_ENDPOINT_ENV = "SAGEMAKER_ENDPOINT_NAME"

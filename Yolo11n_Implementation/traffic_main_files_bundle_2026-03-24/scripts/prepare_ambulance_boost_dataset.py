@@ -79,7 +79,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--ambulance-root",
-        default="/home/anuj/Desktop/image-processing/train",
+        default=str(Path(__file__).resolve().parents[1] / "train"),
         help="Flat COCO dataset root containing images and _annotations.coco.json.",
     )
     parser.add_argument(

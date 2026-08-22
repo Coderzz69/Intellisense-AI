@@ -22,14 +22,32 @@ This repository contains a comprehensive suite for intelligent traffic managemen
 
 ## 🏗️ Repository Structure
 
--   **`traffic_rl/`**: The core AI engine. Features a Hierarchical MARL system (DQN) trained on SUMO environments.
--   **`Yolo11n_Implementation/`**: An interactive React-based dashboard that visualizes traffic telemetry and performs YOLO-based video analysis.
+-   **`Yolo11n_Implementation/`**: The vision stack — YOLO detection, lane tracking, and a trained DQN that picks the signal phase — behind a React dashboard and a Flask four-feed UI. **This runs today.**
+-   **`traffic_rl/`**: The SUMO training environment for the hierarchical MARL system. **Currently incomplete** — see [`traffic_rl/MISSING_FILES.md`](traffic_rl/MISSING_FILES.md).
+
+> ### ⚠️ Status of `traffic_rl/`
+>
+> `traffic_rl/env/traffic_env.py` and the SUMO checkpoints are absent from this
+> repository. A boilerplate `env/` pattern in `traffic_rl/.gitignore` — meant for
+> virtualenvs — matched the project's own `env/` **source** package, so it was
+> never committed. Every entry point there (`main.py`, `demo.py`, `simulate.py`,
+> `scripts/test_env.py`) imports it and therefore cannot run.
+>
+> The ignore patterns are now fixed, so restoring the directory is enough. The
+> metrics below were produced by that environment and cannot be reproduced from
+> this repository until it is restored.
+>
+> The DQN used by the vision pipeline (`Yolo11n_Implementation/traffic/weights/rl_latest.pt`)
+> is a **different, 16-dimensional** model. It is present and working.
 
 ---
 
 ## 📊 Metrics & Performance
 
 The AI controller significantly outperforms traditional fixed-timer baselines across all key metrics.
+
+> Reported from the original SUMO training runs. Not reproducible from this
+> repository until `traffic_rl/env/` is restored.
 
 ### Comparison: Fixed-Timer Baseline vs. Hierarchical Master AI
 | Metric | Fixed-Timer Baseline | Master AI | Improvement |
@@ -51,7 +69,10 @@ Below are the training curves showing the reduction in waiting time and the conv
 ### 1. Traffic RL (Simulation & AI)
 Requires [SUMO](https://sumo.dlr.de/docs/Downloads.php) installed and `SUMO_HOME` environment variable set.
 
-```powershell
+Blocked until `traffic_rl/env/` is restored — see
+[`traffic_rl/MISSING_FILES.md`](traffic_rl/MISSING_FILES.md). Once it is:
+
+```bash
 cd traffic_rl
 pip install -r requirements.txt
 
@@ -62,15 +83,29 @@ python demo.py --mode compare --headless
 python gui.py
 ```
 
-### 2. YOLO Dashboard (Frontend & Analysis)
-Requires [Node.js](https://nodejs.org/) and a Mapbox token.
+### 2. Vision Pipeline + Dashboard
+Requires Python 3.10+, [Node.js](https://nodejs.org/) 18+, and a Mapbox token.
 
-```powershell
+```bash
 cd Yolo11n_Implementation
+python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 npm install
-npm run start:backend  # Start analysis feed
-npm start              # Open React dashboard
+cp .env.example .env                                 # set your Mapbox token
+
+python scripts/make_sample_video.py                  # or set TRAFFIC_DEFAULT_VIDEO_PATH
+npm run start:backend                                # analysis feed on :8000
+npm start                                            # dashboard on :3000
 ```
+
+Verify the AI actually loaded:
+
+```bash
+curl -s http://127.0.0.1:8000/api/config | python -m json.tool   # see the "ai" block
+npm run test:backend
+```
+
+Details in [`Yolo11n_Implementation/README.md`](Yolo11n_Implementation/README.md).
 
 ---
 

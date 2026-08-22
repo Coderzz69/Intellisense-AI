@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import warnings
+from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Type, TypeVar
 
 import yaml
 
 from .models import LANE_ORDER
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_BASE_WEIGHTS = "/home/anuj/Desktop/image-processing/yolo11n.pt"
+DEFAULT_BASE_WEIGHTS = "weights/detector_best.pt"
 
 
 @dataclass
@@ -83,6 +84,26 @@ class AppConfig:
     lane_polygons: Dict[str, List[Tuple[float, float]]] = field(default_factory=dict)
 
 
+T = TypeVar("T")
+
+
+def _build(section_type: Type[T], payload: Optional[Dict[str, Any]], section_name: str) -> T:
+    """Build a config dataclass, ignoring (but reporting) keys it does not define.
+
+    Configs are hand-edited and shared between the detector-only and RL-enabled
+    setups, so an unknown key must not be fatal.
+    """
+    known = {config_field.name for config_field in fields(section_type)}
+    supplied = dict(payload or {})
+    unknown = sorted(set(supplied) - known)
+    if unknown:
+        warnings.warn(
+            f"Ignoring unknown key(s) in config section '{section_name}': {', '.join(unknown)}",
+            stacklevel=3,
+        )
+    return section_type(**{key: value for key, value in supplied.items() if key in known})
+
+
 def _read_yaml(path: Path) -> Dict[str, object]:
     with path.open("r", encoding="utf-8") as handle:
         return yaml.safe_load(handle) or {}
@@ -118,14 +139,14 @@ def load_config(path: Optional[str] = None) -> AppConfig:
 
     config_path = Path(path).expanduser().resolve()
     payload = _read_yaml(config_path)
-    detector = DetectorConfig(**payload.get("detector", {}))
+    detector = _build(DetectorConfig, payload.get("detector"), "detector")
     detector.weights_path = _resolve_weights_path(
         detector.weights_path,
         config_path.parent,
     )
-    tracking = TrackingConfig(**payload.get("tracking", {}))
-    calibration = CalibrationConfig(**payload.get("calibration", {}))
-    signal = SignalConfig(**payload.get("signal", {}))
+    tracking = _build(TrackingConfig, payload.get("tracking"), "tracking")
+    calibration = _build(CalibrationConfig, payload.get("calibration"), "calibration")
+    signal = _build(SignalConfig, payload.get("signal"), "signal")
 
     return AppConfig(
         detector=detector,

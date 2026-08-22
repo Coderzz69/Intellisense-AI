@@ -7,6 +7,7 @@ import mimetypes
 import os
 import sys
 import time
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -37,7 +38,7 @@ from backend.analysis import (
 )
 from backend.cloud import S3AnalyticsSink
 from backend.runtime import (
-    BUNDLE_DIR,
+    AI_DIR,
     DEFAULT_CONFIG_PATH,
     DEFAULT_EMIT_INTERVAL_SEC,
     DEFAULT_PROCESS_FPS,
@@ -47,6 +48,12 @@ from backend.runtime import (
     load_processing_pipeline,
 )
 from backend.settings import resolve_sagemaker_endpoint_name
+
+
+@lru_cache(maxsize=1)
+def describe_pipeline() -> dict[str, object]:
+    """Load the AI pipeline once so /api/config can report what will actually run."""
+    return load_processing_pipeline(DEFAULT_CONFIG_PATH).describe()
 
 
 class TrafficDashboardHandler(BaseHTTPRequestHandler):
@@ -97,10 +104,20 @@ class TrafficDashboardHandler(BaseHTTPRequestHandler):
             finally:
                 capture.release()
 
+        try:
+            ai_info = describe_pipeline()
+            ai_error = None
+        except Exception as exc:
+            ai_info = None
+            ai_error = str(exc)
+
         self._write_json(
             {
-                "bundlePath": str(BUNDLE_DIR),
+                "aiPath": str(AI_DIR),
+                "bundlePath": str(AI_DIR),
                 "configPath": str(DEFAULT_CONFIG_PATH),
+                "ai": ai_info,
+                "aiError": ai_error,
                 "defaultVideoPath": None if DEFAULT_VIDEO_PATH is None else str(DEFAULT_VIDEO_PATH),
                 "defaults": {
                     "processFps": DEFAULT_PROCESS_FPS,
@@ -184,6 +201,7 @@ class TrafficDashboardHandler(BaseHTTPRequestHandler):
                         "realtime": realtime,
                         "inferenceProvider": get_inference_provider(),
                         "sagemakerEndpointName": resolve_sagemaker_endpoint_name(),
+                        "ai": pipeline.describe(),
                     }
                     self._write_sse(session_payload)
                     record_analytics_event(

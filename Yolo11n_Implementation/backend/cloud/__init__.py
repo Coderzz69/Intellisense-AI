@@ -3,15 +3,16 @@ from .traffic_nodes import build_congestion_summary, build_traffic_nodes
 
 __all__ = [
     "S3AnalyticsSink",
-    "SageMakerTrafficPipeline",
+    "SageMakerDetector",
     "build_congestion_summary",
     "build_traffic_nodes",
 ]
 
 
 def __getattr__(name: str):
-    if name == "SageMakerTrafficPipeline":
-        from .sagemaker import SageMakerTrafficPipeline
+    """Defer the SageMaker import so boto3 stays optional for local runs."""
+    if name == "SageMakerDetector":
+        from .sagemaker import SageMakerDetector
 
-        return SageMakerTrafficPipeline
+        return SageMakerDetector
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

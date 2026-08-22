@@ -35,3 +35,11 @@ outputs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# ML scratch
+/runs/
+/datasets/
+samples/*.mp4
+
+# Generated Ultralytics cache (machine-specific absolute paths)
+.ultralytics/

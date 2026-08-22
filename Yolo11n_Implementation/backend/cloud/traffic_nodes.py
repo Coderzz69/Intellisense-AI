@@ -70,6 +70,8 @@ def build_traffic_nodes(metrics: Dict[str, object], timestamp_label: str) -> lis
             "camera_id": camera_id,
             "cameraId": camera_id,
             "timestamp": observed_at,
+            "greenLanes": list(metrics.get("rlGreenLanes", []) or []),
+            "signalDecisionSource": metrics.get("rlDecisionSource"),
             "source": "backend-summary",
         }
     ]
@@ -103,6 +105,7 @@ def build_traffic_nodes(metrics: Dict[str, object], timestamp_label: str) -> lis
                 "camera_id": camera_id,
                 "cameraId": camera_id,
                 "timestamp": observed_at,
+                "signal": str(lane_entry.get("signal", "unknown")),
                 "source": "backend-lane",
             }
         )

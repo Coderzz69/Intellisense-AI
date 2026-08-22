@@ -12,6 +12,8 @@ import cv2
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+import _ai_path  # noqa: F401,E402  (puts the canonical traffic_pipeline on sys.path)
+
 from scripts.detect_traffic import maybe_show, open_video_writer, render_annotations
 from traffic_pipeline import TrafficPipeline, load_config
 from traffic_pipeline.models import LANE_ORDER

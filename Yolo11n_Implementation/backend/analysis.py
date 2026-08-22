@@ -153,6 +153,14 @@ def build_lane_stats(vehicle_details: list[dict[str, object]]) -> tuple[dict[str
     return lane_distribution, lane_stats
 
 
+def _lane_signals(rl_decision: Optional[dict]) -> dict[str, str]:
+    """Per-lane green/red as decided by the DQN, or 'unknown' before the first decision."""
+    if not rl_decision:
+        return {lane: "unknown" for lane in LANES}
+    signals = rl_decision.get("laneSignals") or {}
+    return {lane: str(signals.get(lane, "unknown")) for lane in LANES}
+
+
 def build_analysis_payload(
     result: dict[str, object],
     *,
@@ -195,6 +203,15 @@ def build_analysis_payload(
             2,
         ),
     }
+
+    rl_decision = result.get("rl_decision")
+    lane_signals = _lane_signals(rl_decision)
+    metrics["laneSignals"] = lane_signals
+    metrics["rlGreenLanes"] = [lane for lane in LANES if lane_signals.get(lane) == "green"]
+    metrics["rlActionName"] = None if rl_decision is None else rl_decision.get("actionName")
+    metrics["rlDecisionSource"] = None if rl_decision is None else rl_decision.get("decisionSource")
+    for lane, lane_entry in lane_stats.items():
+        lane_entry["signal"] = lane_signals.get(lane, "unknown")
     timestamp_label = format_timestamp(timestamp_sec)
     observed_at = datetime.now(timezone.utc).isoformat()
     traffic_nodes = build_traffic_nodes(metrics, timestamp_label)
@@ -214,6 +231,7 @@ def build_analysis_payload(
         "inference": result.get("inference"),
         "inferenceProvider": result.get("inferenceProvider", get_inference_provider()),
         "signalPlan": result.get("signal_plan"),
+        "rlDecision": rl_decision,
     }
 
 

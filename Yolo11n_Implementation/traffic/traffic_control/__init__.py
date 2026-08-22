@@ -1,9 +1,11 @@
 """RL traffic control modules for combining detection output with the trained signal model."""
 
+from .ai_pipeline import AITrafficPipeline
 from .config import RLConfig, load_rl_config
 from .controller import RLDecision, RLTrafficController
 
 __all__ = [
+    "AITrafficPipeline",
     "RLConfig",
     "RLDecision",
     "RLTrafficController",

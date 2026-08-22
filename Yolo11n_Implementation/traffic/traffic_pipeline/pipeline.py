@@ -1,24 +1,30 @@
 from __future__ import annotations
 
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from .bridge import build_bridge_vector
 from .config import AppConfig
-from .detector import YoloTrafficDetector
-from .models import Detection
-from .models import SignalPlan
+from .detector import TrafficDetector, YoloTrafficDetector
+from .models import Detection, SignalPlan
 from .signal_control import PaperSignalController
 from .tracker import SimpleTracker
 
 
 class TrafficPipeline:
+    """Detection -> tracking -> lane metrics -> rule-based signal plan.
+
+    The detector is injected rather than constructed unconditionally so the same
+    pipeline can run against local YOLO weights or a remote inference endpoint.
+    Any object satisfying :class:`TrafficDetector` works.
+    """
+
     def __init__(
         self,
         config: AppConfig,
-        detector: Optional[YoloTrafficDetector] = None,
+        detector: Optional[TrafficDetector] = None,
     ) -> None:
         self.config = config
-        self.detector = detector or YoloTrafficDetector(
+        self.detector: TrafficDetector = detector or YoloTrafficDetector(
             config.detector,
             config.vehicle_keywords,
         )
@@ -30,6 +36,10 @@ class TrafficPipeline:
         self._signal_plan: Optional[SignalPlan] = None
         self._cycle_started_at = 0.0
 
+    @property
+    def provider(self) -> str:
+        return getattr(self.detector, "provider", "local")
+
     def process_frame(
         self,
         frame,
@@ -37,16 +47,19 @@ class TrafficPipeline:
         temporal_metrics_available: bool = True,
     ) -> Dict[str, object]:
         detections = self.detector.detect(frame)
-        return self.process_detections(
+        result = self.process_detections(
             detections=detections,
             frame_shape=frame.shape,
             timestamp_sec=timestamp_sec,
             temporal_metrics_available=temporal_metrics_available,
         )
+        result["inference"] = getattr(self.detector, "inference_metadata", None)
+        result["inferenceProvider"] = self.provider
+        return result
 
     def process_detections(
         self,
-        detections: list[Detection],
+        detections: List[Detection],
         frame_shape,
         timestamp_sec: float,
         temporal_metrics_available: bool = True,
@@ -86,6 +99,7 @@ class TrafficPipeline:
             ),
             "current_green_lane": current_green_lane,
             "signal_plan": None if self._signal_plan is None else self._signal_plan.to_dict(),
+            "inferenceProvider": self.provider,
         }
 
     def _should_refresh_plan(self, timestamp_sec, snapshots) -> bool:
