@@ -1,125 +1,96 @@
-# 🚦 IntelliSignal-AI — AI Traffic Management System
+# IntelliSignal AI
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![SUMO](https://img.shields.io/badge/SUMO-1.18.0+-orange.svg)](https://sumo.dlr.de/docs/index.html)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/)
+Traffic signals that look at the road. A camera feed goes through a fine-tuned YOLO11n detector and a
+per-lane tracker, and a trained DQN decides which approach gets green. An ambulance on a red approach
+gets green right away. Built for the Society Security Solution (SSS) hackathon around Indian traffic:
+auto-rickshaws, bikes and buses in mixed, weaving lanes.
 
-> **Decentralized Multi-Agent Reinforcement Learning and Real-time Analysis for Indian Urban Traffic Control.**
+<p align="center">
+  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="Fixed timers vs one shared DQN on the 4x4 SUMO grid, same traffic"></a>
+  <br><a href="docs/demo.mp4"><b>▶ Watch the 50-second demo (with sound)</b>: fixed timers vs one DQN in SUMO</a>
+</p>
 
----
+The demo is a fresh retrain with [sumo-rl](https://github.com/LucasAlegre/sumo-rl) on this repo's own 4×4 network,
+because the original SUMO environment was never committed (see the status note below). One shared DQN drives all
+12 lights. Over five unseen traffic seeds it cut total stopped time by **20.9%** (420,810 → 332,913 vehicle-seconds):
+44–72% better on four seeds, but on the fifth a junction jammed (+144%). Reproduce with
+`traffic_rl/sumo_rl_retrain/` (`train.py`, then `evaluate.py`).
 
-## 📖 Overview
+## How it works
 
-This repository contains a comprehensive suite for intelligent traffic management, developed for the **SSS Hackathon**. It combines high-fidelity traffic simulation using **SUMO** and **Reinforcement Learning** with a real-time **YOLO-based analysis dashboard**.
-
-### Core Objectives
-1.  **Reduce Congestion**: Replace fixed-timer signals with AI policies that adapt to real-time demand.
-2.  **Emergency Priority**: Integrated "Global Green Corridor" to ensure zero-wait for ambulances.
-3.  **Realistic Simulation**: Modeled after Indian urban traffic with lane weaving and mixed vehicle classes.
-4.  **Actionable Insights**: Real-time visualization of traffic density and vehicle distributions.
-
----
-
-## 🏗️ Repository Structure
-
--   **`Yolo11n_Implementation/`**: The vision stack — YOLO detection, lane tracking, and a trained DQN that picks the signal phase — behind a React dashboard and a Flask four-feed UI. **This runs today.**
--   **`traffic_rl/`**: The SUMO training environment for the hierarchical MARL system. **Currently incomplete** — see [`traffic_rl/MISSING_FILES.md`](traffic_rl/MISSING_FILES.md).
-
-> ### ⚠️ Status of `traffic_rl/`
->
-> `traffic_rl/env/traffic_env.py` and the SUMO checkpoints are absent from this
-> repository. A boilerplate `env/` pattern in `traffic_rl/.gitignore` — meant for
-> virtualenvs — matched the project's own `env/` **source** package, so it was
-> never committed. Every entry point there (`main.py`, `demo.py`, `simulate.py`,
-> `scripts/test_env.py`) imports it and therefore cannot run.
->
-> The ignore patterns are now fixed, so restoring the directory is enough. The
-> metrics below were produced by that environment and cannot be reproduced from
-> this repository until it is restored.
->
-> The DQN used by the vision pipeline (`Yolo11n_Implementation/traffic/weights/rl_latest.pt`)
-> is a **different, 16-dimensional** model. It is present and working.
-
----
-
-## 📊 Metrics & Performance
-
-The AI controller significantly outperforms traditional fixed-timer baselines across all key metrics.
-
-> Reported from the original SUMO training runs. Not reproducible from this
-> repository until `traffic_rl/env/` is restored.
-
-### Comparison: Fixed-Timer Baseline vs. Hierarchical Master AI
-| Metric | Fixed-Timer Baseline | Master AI | Improvement |
-| :--- | :--- | :--- | :--- |
-| **Total Wait Time (s)** | 93,563 | 18,914 | **↓ 79.8%** |
-| **Avg Wait Per Vehicle (s)** | 14.7 | 6.2 | **↓ 57.7%** |
-| **Avg Emergency Wait (s)** | Context-dependent | ~0 (corridor created) | **↓ ~100%** |
-| **Throughput (Vehicles Arrived)** | Baseline | High | **↑ Optimized** |
-
-### Training Progress
-Below are the training curves showing the reduction in waiting time and the convergence of the RL policy over 110 episodes.
-
-![Training Curves](traffic_rl/plots/training_curves.png)
-
----
-
-## 🚀 Quick Start
-
-### 1. Traffic RL (Simulation & AI)
-Requires [SUMO](https://sumo.dlr.de/docs/Downloads.php) installed and `SUMO_HOME` environment variable set.
-
-Blocked until `traffic_rl/env/` is restored — see
-[`traffic_rl/MISSING_FILES.md`](traffic_rl/MISSING_FILES.md). Once it is:
-
-```bash
-cd traffic_rl
-pip install -r requirements.txt
-
-# Run the comparison demo (Baseline vs AI)
-python demo.py --mode compare --headless
-
-# Open the AI Control Dashboard
-python gui.py
+```
+camera frame
+  └─ YOLO11n            6 classes: ambulance, auto-rickshaw, bike, bus, car, truck
+      └─ lane tracker   queue length, halted vehicles, accumulated wait, per approach
+          └─ 16 numbers  queue[4]  wait[4]  current phase[4]  emergency[4]
+              └─ DQN    → NS_GREEN or EW_GREEN, held for a minimum green time
+                          an ambulance on a red approach overrides the hold
 ```
 
-### 2. Vision Pipeline + Dashboard
-Requires Python 3.10+, [Node.js](https://nodejs.org/) 18+, and a Mapbox token.
+The DQN's decision is held for `signal.minimum_green_time` before it's reconsidered, so the output is a
+stable signal plan, not a light that flickers with every frame.
+
+| Component | Detail |
+|---|---|
+| Detector | YOLO11n fine-tuned at 960 px for 70 epochs. Validation mAP50 **0.708**, precision 0.763, recall 0.631 |
+| Controller | DQN over the 16-number lane state (`traffic/weights/rl_latest.pt`) |
+| Front ends | A React + Mapbox dashboard fed over SSE, and a standalone Flask four-feed view |
+| Cloud | Optional SageMaker endpoint for the detector (`sagemaker/`, `docs/aws-sagemaker.md`) |
+
+## Run it
+
+Python 3.10+, Node 18+, and a Mapbox token for the dashboard map.
 
 ```bash
 cd Yolo11n_Implementation
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 npm install
-cp .env.example .env                                 # set your Mapbox token
+cp .env.example .env                      # set REACT_APP_MAPBOX_ACCESS_TOKEN
 
-python scripts/make_sample_video.py                  # or set TRAFFIC_DEFAULT_VIDEO_PATH
-npm run start:backend                                # analysis feed on :8000
-npm start                                            # dashboard on :3000
+export TRAFFIC_DEFAULT_VIDEO_PATH=/path/to/traffic.mp4
+npm run start:backend                     # analysis + SSE on :8000
+npm start                                 # dashboard on :3000
 ```
 
-Verify the AI actually loaded:
+No footage is included. `python scripts/make_sample_video.py` makes a synthetic clip that exercises the
+whole chain but has no real vehicles in it, so use real traffic video to see detections.
 
-```bash
-curl -s http://127.0.0.1:8000/api/config | python -m json.tool   # see the "ai" block
-npm run test:backend
-```
+`curl -s localhost:8000/api/config` shows the detector weights, the DQN checkpoint and the devices that
+were actually loaded. The four-feed view runs on its own with `cd traffic && python app.py` (port 5001).
 
-Details in [`Yolo11n_Implementation/README.md`](Yolo11n_Implementation/README.md).
+More detail: [`Yolo11n_Implementation/README.md`](Yolo11n_Implementation/README.md).
 
----
+## The SUMO multi-agent controller (`traffic_rl/`)
 
-## 🛠️ Technical Highlights
+The other half of the project trains signal control in simulation: a 4×4 SUMO grid with Indian driving
+behaviour (lane weaving, erratic braking, mixed vehicle classes). A master controller handles city-wide
+events like an ambulance green corridor, and one shared-weight DQN runs every junction.
 
--   **Hierarchical Control**: A **Master Controller** handles global crises (Emergency/Congestion) while **Local RL Agents** optimize per-junction throughput.
--   **Shared Weight Generalization**: A single DQN model manages multiple intersections, generalized for both 3-way and 4-way junctions.
--   **Indian Traffic Patterns**: Custom SUMO configuration includes erratic braking, lane weaving, and varied vehicle physics.
--   **Hybrid Overrides**: Safety-critical rule-based layers ensure the AI never blocks an emergency vehicle.
+From the original training runs, against fixed-timer signals:
 
----
+| Metric | Fixed timer | Master + DQN |
+|---|---|---|
+| Total wait (s) | 93,563 | 18,914 (**−79.8%**) |
+| Average wait per vehicle (s) | 14.7 | 6.2 (**−57.7%**) |
+| Ambulance wait | depends on the queue | about 0 (green corridor) |
 
-## 👨‍💻 Developed By
+![Training curves](traffic_rl/plots/training_curves.png)
 
-Built as a unified solution for **Society Security Solution (SSS)**.
-- **Frameworks**: SUMO · TraCI · PyTorch · YOLOv11 · React
-- **Architecture**: Decentralized MARL with Hierarchical Supervision
+> **Status:** `traffic_rl/env/`, the SUMO environment those numbers came from, is missing from this
+> repository. A `.gitignore` rule meant for virtualenvs matched it and it was never committed, so the
+> scripts in `traffic_rl/` can't run and the table can't be reproduced from here yet.
+> [`traffic_rl/MISSING_FILES.md`](traffic_rl/MISSING_FILES.md) has the details. The vision pipeline above
+> uses its own DQN and is complete.
+
+## Layout
+
+| Path | What |
+|---|---|
+| `Yolo11n_Implementation/traffic/` | The pipeline: detection, tracking, lane geometry, DQN controller, weights, config |
+| `Yolo11n_Implementation/backend/` | HTTP + SSE server for the dashboard |
+| `Yolo11n_Implementation/src/` | React dashboard |
+| `Yolo11n_Implementation/traffic_main_files_bundle_2026-03-24/` | Detector training and dataset preparation |
+| `traffic_rl/` | SUMO network, master/hybrid/baseline controllers, DQN, training (environment missing, see above) |
+
+Stack: PyTorch · Ultralytics YOLO11 · SUMO / TraCI · Flask · React · Mapbox · AWS SageMaker
