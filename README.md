@@ -5,10 +5,7 @@ per-lane tracker, and a trained DQN decides which approach gets green. An ambula
 gets green right away. Built for the Society Security Solution (SSS) hackathon around Indian traffic:
 auto-rickshaws, bikes and buses in mixed, weaving lanes.
 
-<p align="center">
-  <a href="docs/demo.mp4"><img src="docs/demo.gif" width="800" alt="Fixed timers vs one shared DQN on the 4x4 SUMO grid, same traffic"></a>
-  <br><a href="docs/demo.mp4"><b>▶ Watch the 50-second demo (with sound)</b>: fixed timers vs one DQN in SUMO</a>
-</p>
+https://github.com/user-attachments/assets/b611d67f-0316-4d26-aca9-a235e4693f03
 
 The demo is a fresh retrain with [sumo-rl](https://github.com/LucasAlegre/sumo-rl) on this repo's own 4×4 network,
 because the original SUMO environment was never committed (see the status note below). One shared DQN drives all
