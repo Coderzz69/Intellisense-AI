@@ -9,8 +9,8 @@ https://github.com/user-attachments/assets/b611d67f-0316-4d26-aca9-a235e4693f03
 
 The demo is a fresh retrain with [sumo-rl](https://github.com/LucasAlegre/sumo-rl) on this repo's own 4×4 network,
 because the original SUMO environment was never committed (see the status note below). One shared DQN drives all
-12 lights. Over five unseen traffic seeds it cut total stopped time by **20.9%** (420,810 → 332,913 vehicle-seconds):
-44–72% better on four seeds, but on the fifth a junction jammed (+144%). Reproduce with
+12 lights. On five traffic seeds it never trained on, it cut total stopped time by **62.0%** against the fixed
+timers (349,355 → 132,794 vehicle-seconds), better on every seed (−45% to −70%). Reproduce with
 `traffic_rl/sumo_rl_retrain/` (`train.py`, then `evaluate.py`).
 
 ## How it works

@@ -21,7 +21,7 @@ import numpy as np
 import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from train import ROOT, QNetwork, act, make_env  # noqa: E402
+from train import ROOT, QNetwork, act, guard, make_env  # noqa: E402
 
 
 def run(mode: str, seed: int, ckpt: str, tripinfo: Path, record: dict | None) -> dict:
@@ -56,7 +56,7 @@ def run(mode: str, seed: int, ckpt: str, tripinfo: Path, record: dict | None) ->
         net.load_state_dict(c["state_dict"]); net.eval()
     done = False
     while not done:
-        actions = {} if net is None else act(net, obs, c["obs_dim"], 0.0, c["n_actions"], "cpu")
+        actions = {} if net is None else guard(env, act(net, obs, c["obs_dim"], 0.0, c["n_actions"], "cpu"))
         obs, _, dones, _ = env.step(actions)
         done = dones["__all__"]
     env.close()
@@ -92,10 +92,16 @@ def main() -> None:
         rec = {"dir": args.record, "window": (a, b)}
     tmp = Path(args.record or ".")
     seeds = [int(x) for x in args.seeds.split(",")]
+    import multiprocessing as mp
+    # all seed x controller runs at once; only the first seed is recorded for the video,
+    # and it was fixed before any results were seen
+    jobs = [(m, seed, args.ckpt, tmp / f"tripinfo_{m}_{seed}.xml", rec if i == 0 else None)
+            for i, seed in enumerate(seeds) for m in ("fixed", "dqn")]
+    with mp.get_context("spawn").Pool(min(len(jobs), 10)) as pool:
+        out = pool.starmap(run, jobs)
     rows = []
     for i, seed in enumerate(seeds):
-        # only the first seed is recorded for the video; it was fixed before any results were seen
-        r = {m: run(m, seed, args.ckpt, tmp / f"tripinfo_{m}_{seed}.xml", rec if i == 0 else None) for m in ("fixed", "dqn")}
+        r = {"fixed": out[2 * i], "dqn": out[2 * i + 1]}
         rows.append((seed, r))
         f, d = r["fixed"], r["dqn"]
         print(f"seed {seed}: stopped vehicle-seconds {f['total_wait_s']:,} -> {d['total_wait_s']:,} "
